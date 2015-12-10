@@ -12,6 +12,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from account.api.serializers import UserSerializer
 from .oauth2_backends import KeepRequestCore
 from .oauth2_endpoints import SocialTokenServer
 
@@ -36,7 +37,13 @@ class ConvertTokenView(CsrfExemptMixin, OAuthLibMixin, APIView):
             request._request.POST[key] = value
 
         url, headers, body, status = self.create_token_response(request._request)
-        response = Response(data=json.loads(body), status=status)
+
+        body = json.loads(body)
+        at = AccessToken.objects.get(token=body['access_token'])
+        serializer = UserSerializer(instance=at.user)
+        body['user'] = serializer.data
+
+        response = Response(data=body, status=status)
 
         for k, v in headers.items():
             response[k] = v
